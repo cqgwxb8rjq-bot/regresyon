@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Regresyon" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#4299e1" />
+  <title>Lineer Regresyon</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      min-height: 100vh;
+    }
+
+    body {
+      padding: env(safe-area-inset-top) 14px env(safe-area-inset-bottom);
+      padding-top: calc(env(safe-area-inset-top) + 16px);
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.35rem;
+      margin-bottom: 18px;
+      color: #2d3748;
+      font-weight: 700;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    @media (max-width: 720px) {
+      .container { grid-template-columns: 1fr; gap: 14px; }
+    }
+
+    .panel {
+      background: #fff;
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+
+    .panel h2 {
+      font-size: 0.72rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #4a5568;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .axis-labels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .axis-labels label {
+      display: flex;
+      flex-direction: column;
+      font-size: 0.76rem;
+      color: #718096;
+      gap: 5px;
+    }
+
+    /* 16px zorunlu — iOS zoom önleme */
+    input[type="text"], input[type="number"] {
+      font-size: 16px;
+      padding: 11px 12px;
+      border: 1.5px solid #cbd5e0;
+      border-radius: 8px;
+      outline: none;
+      width: 100%;
+      background: #fff;
+      color: #1a202c;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input:focus { border-color: #4299e1; }
+
+    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+
+    thead th {
+      background: #edf2f7;
+      padding: 9px 4px;
+      text-align: center;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #4a5568;
+    }
+
+    tbody td {
+      padding: 3px 3px;
+      text-align: center;
+    }
+
+    tbody td input[type="number"] {
+      padding: 10px 4px;
+      text-align: center;
+      border-radius: 6px;
+    }
+
+    tbody td.del-col { width: 44px; }
+
+    .btn-del {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      background: #fff5f5;
+      border: none;
+      color: #e53e3e;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .btn-del:active { background: #fed7d7; }
+
+    .row-actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .btn {
+      flex: 1;
+      height: 46px;
+      padding: 0 12px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.92rem;
+      font-weight: 700;
+      touch-action: manipulation;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .btn:active { opacity: 0.7; }
+
+    .btn-add   { background: #ebf8ff; color: #2b6cb0; }
+    .btn-clear { background: #fff5f5; color: #c53030; }
+
+    .btn-calc {
+      width: 100%;
+      height: 50px;
+      background: #4299e1;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .btn-calc:active { background: #3182ce; }
+
+    .results {
+      margin-top: 14px;
+      padding: 13px;
+      background: #f7fafc;
+      border-radius: 10px;
+      border-left: 4px solid #4299e1;
+      display: none;
+    }
+
+    .results.show { display: block; }
+
+    .results p {
+      font-size: 0.88rem;
+      margin-bottom: 6px;
+      color: #2d3748;
+      word-break: break-word;
+      line-height: 1.4;
+    }
+
+    .results p:last-child { margin-bottom: 0; }
+    .results strong { color: #2b6cb0; font-family: 'Menlo', monospace; font-size: 0.92rem; }
+
+    .r2-bar-wrap { margin-top: 10px; }
+    .r2-label { font-size: 0.74rem; color: #718096; margin-bottom: 4px; }
+    .r2-bar { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+    .r2-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #f6ad55, #48bb78);
+      transition: width 0.5s ease;
+    }
+
+    .chart-wrap {
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+
+    .chart-placeholder {
+      color: #a0aec0;
+      font-size: 0.88rem;
+      text-align: center;
+      padding: 60px 20px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .error {
+      color: #e53e3e;
+      font-size: 0.82rem;
+      margin-top: 4px;
+      margin-bottom: 8px;
+      display: none;
+    }
+
+    .error.show { display: block; }
+
+    .hint {
+      font-size: 0.7rem;
+      color: #a0aec0;
+      text-align: center;
+      margin-top: 16px;
+      padding-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Lineer Regresyon Grafiği</h1>
+
+  <div class="container">
+    <div class="panel">
+      <h2>Eksen Etiketleri</h2>
+      <div class="axis-labels">
+        <label>X Ekseni
+          <input type="text" id="xLabel" placeholder="örn. Konsantrasyon" />
+        </label>
+        <label>Y Ekseni
+          <input type="text" id="yLabel" placeholder="örn. Absorbans" />
+        </label>
+      </div>
+
+      <h2>Veri Noktaları</h2>
+      <table>
+        <thead>
+          <tr><th>#</th><th>X</th><th>Y</th><th></th></tr>
+        </thead>
+        <tbody id="dataBody"></tbody>
+      </table>
+
+      <p class="error" id="errorMsg">Lütfen en az 2 geçerli veri noktası girin.</p>
+
+      <div class="row-actions">
+        <button type="button" class="btn btn-add" id="btnAdd">+ Satır Ekle</button>
+        <button type="button" class="btn btn-clear" id="btnClear">Temizle</button>
+      </div>
+
+      <button type="button" class="btn-calc" id="btnCalc">Grafik Oluştur</button>
+
+      <div class="results" id="results">
+        <p>Denklem: <strong id="eqText"></strong></p>
+        <p>R² = <strong id="r2Text"></strong></p>
+        <div class="r2-bar-wrap">
+          <div class="r2-label">Uyum kalitesi</div>
+          <div class="r2-bar"><div class="r2-fill" id="r2Fill" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="chart-wrap">
+        <div id="placeholder" class="chart-placeholder">Veri girip "Grafik Oluştur"a dokunun</div>
+        <canvas id="chart" style="display:none"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <p class="hint">İpucu: Safari'de paylaş → "Ana Ekrana Ekle" ile uygulama gibi kullanabilirsin.</p>
+
+  <script>
+    (function() {
+      'use strict';
+
+      var rowCount = 0;
+      var lastResult = null;
+      var dataBody = document.getElementById('dataBody');
+
+      function addRow() {
+        rowCount++;
+        var id = 'row-' + rowCount;
+        var tr = document.createElement('tr');
+        tr.id = id;
+        tr.innerHTML =
+          '<td style="color:#a0aec0;font-size:0.78rem">' + rowCount + '</td>' +
+          '<td><input type="number" inputmode="decimal" step="any" /></td>' +
+          '<td><input type="number" inputmode="decimal" step="any" /></td>' +
+          '<td class="del-col"><button type="button" class="btn-del" data-row="' + id + '">✕</button></td>';
+        dataBody.appendChild(tr);
+      }
+
+      function clearAll() {
+        dataBody.innerHTML = '';
+        rowCount = 0;
+        hideResults();
+        for (var i = 0; i < 5; i++) addRow();
+      }
+
+      function hideResults() {
+        document.getElementById('results').classList.remove('show');
+        document.getElementById('errorMsg').classList.remove('show');
+        document.getElementById('placeholder').style.display = 'block';
+        document.getElementById('chart').style.display = 'none';
+        lastResult = null;
+      }
+
+      function getPoints() {
+        var pts = [];
+        var rows = dataBody.querySelectorAll('tr');
+        for (var i = 0; i < rows.length; i++) {
+          var ins = rows[i].querySelectorAll('input');
+          var x = parseFloat(ins[0].value);
+          var y = parseFloat(ins[1].value);
+          if (!isNaN(x) && !isNaN(y)) pts.push({ x: x, y: y });
+        }
+        return pts;
+      }
+
+      function linReg(pts) {
+        var n = pts.length, sumX=0, sumY=0, sumXY=0, sumX2=0;
+        for (var i = 0; i < n; i++) {
+          sumX += pts[i].x; sumY += pts[i].y;
+          sumXY += pts[i].x * pts[i].y;
+          sumX2 += pts[i].x * pts[i].x;
+        }
+        var meanY = sumY / n;
+        var m = (n*sumXY - sumX*sumY) / (n*sumX2 - sumX*sumX);
+        var b = (sumY - m*sumX) / n;
+        var ssTot = 0, ssRes = 0;
+        for (var j = 0; j < n; j++) {
+          ssTot += Math.pow(pts[j].y - meanY, 2);
+          ssRes += Math.pow(pts[j].y - (m*pts[j].x + b), 2);
+        }
+        var r2 = ssTot === 0 ? 1 : 1 - ssRes/ssTot;
+        return { m: m, b: b, r2: r2 };
+      }
+
+      function fmt(n) {
+        if (!isFinite(n)) return '—';
+        if (Math.abs(n) >= 0.001 && Math.abs(n) < 100000) return parseFloat(n.toFixed(6)).toString();
+        if (n === 0) return '0';
+        return n.toExponential(4);
+      }
+
+      function calculate() {
+        var pts = getPoints();
+        var err = document.getElementById('errorMsg');
+        if (pts.length < 2) { err.classList.add('show'); return; }
+        err.classList.remove('show');
+
+        var reg = linReg(pts);
+        var sign = reg.b >= 0 ? '+' : '-';
+        var xLabel = document.getElementById('xLabel').value || 'x';
+        var yLabel = document.getElementById('yLabel').value || 'y';
+
+        document.getElementById('eqText').textContent =
+          yLabel + ' = ' + fmt(reg.m) + '·' + xLabel + ' ' + sign + ' ' + fmt(Math.abs(reg.b));
+        document.getElementById('r2Text').textContent = reg.r2.toFixed(6);
+        document.getElementById('r2Fill').style.width = (Math.max(0, reg.r2) * 100).toFixed(1) + '%';
+        document.getElementById('results').classList.add('show');
+
+        lastResult = { pts: pts, m: reg.m, b: reg.b, xLabel: xLabel, yLabel: yLabel };
+        drawChart();
+      }
+
+      // Kendi yazdığım basit grafik motoru — harici kütüphane yok, tamamen offline
+      function drawChart() {
+        if (!lastResult) return;
+        document.getElementById('placeholder').style.display = 'none';
+        var canvas = document.getElementById('chart');
+        canvas.style.display = 'block';
+
+        var dpr = window.devicePixelRatio || 1;
+        var cssW = canvas.parentElement.clientWidth - 28;
+        var cssH = Math.min(Math.max(cssW * 0.75, 280), 480);
+        canvas.style.width = cssW + 'px';
+        canvas.style.height = cssH + 'px';
+        canvas.width  = Math.floor(cssW * dpr);
+        canvas.height = Math.floor(cssH * dpr);
+
+        var ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, cssW, cssH);
+
+        var pts = lastResult.pts;
+        var m = lastResult.m, b = lastResult.b;
+        var xLabel = lastResult.xLabel, yLabel = lastResult.yLabel;
+
+        // Veri sınırları + padding
+        var xs = pts.map(function(p){ return p.x; });
+        var ys = pts.map(function(p){ return p.y; });
+        // Regresyon çizgisi uç noktalarını da sınırlara dahil et
+        var minX = Math.min.apply(null, xs), maxX = Math.max.apply(null, xs);
+        var xPad = (maxX - minX) * 0.1 || 1;
+        var lx1 = minX - xPad, lx2 = maxX + xPad;
+        var ly1 = m*lx1 + b, ly2 = m*lx2 + b;
+        var minY = Math.min.apply(null, ys.concat([ly1, ly2]));
+        var maxY = Math.max.apply(null, ys.concat([ly1, ly2]));
+        var yPad = (maxY - minY) * 0.1 || 1;
+
+        var xMin = minX - xPad, xMax = maxX + xPad;
+        var yMin = minY - yPad, yMax = maxY + yPad;
+
+        var padL = 58, padR = 16, padT = 16, padB = 46;
+        var plotW = cssW - padL - padR;
+        var plotH = cssH - padT - padB;
+
+        function sx(x) { return padL + (x - xMin) / (xMax - xMin) * plotW; }
+        function sy(y) { return padT + plotH - (y - yMin) / (yMax - yMin) * plotH; }
+
+        // Grid + eksen tick'leri
+        ctx.font = '11px -apple-system, Segoe UI, sans-serif';
+        ctx.fillStyle = '#718096';
+        ctx.strokeStyle = '#edf2f7';
+        ctx.lineWidth = 1;
+
+        var xTicks = niceTicks(xMin, xMax, 6);
+        var yTicks = niceTicks(yMin, yMax, 6);
+
+        for (var i = 0; i < xTicks.length; i++) {
+          var xp = sx(xTicks[i]);
+          ctx.beginPath();
+          ctx.moveTo(xp, padT);
+          ctx.lineTo(xp, padT + plotH);
+          ctx.stroke();
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.fillText(tickFmt(xTicks[i]), xp, padT + plotH + 6);
+        }
+        for (var k = 0; k < yTicks.length; k++) {
+          var yp = sy(yTicks[k]);
+          ctx.beginPath();
+          ctx.moveTo(padL, yp);
+          ctx.lineTo(padL + plotW, yp);
+          ctx.stroke();
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(tickFmt(yTicks[k]), padL - 6, yp);
+        }
+
+        // Eksen çerçevesi
+        ctx.strokeStyle = '#a0aec0';
+        ctx.lineWidth = 1.2;
+        ctx.strokeRect(padL, padT, plotW, plotH);
+
+        // Regresyon çizgisi
+        ctx.strokeStyle = '#e53e3e';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(sx(lx1), sy(ly1));
+        ctx.lineTo(sx(lx2), sy(ly2));
+        ctx.stroke();
+
+        // Veri noktaları
+        ctx.fillStyle = '#4299e1';
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        for (var j = 0; j < pts.length; j++) {
+          var px = sx(pts[j].x), py = sy(pts[j].y);
+          ctx.beginPath();
+          ctx.arc(px, py, 5.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+
+        // Eksen başlıkları
+        ctx.fillStyle = '#2d3748';
+        ctx.font = 'bold 12px -apple-system, Segoe UI, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(xLabel, padL + plotW/2, cssH - 4);
+        ctx.save();
+        ctx.translate(14, padT + plotH/2);
+        ctx.rotate(-Math.PI/2);
+        ctx.textBaseline = 'top';
+        ctx.fillText(yLabel, 0, 0);
+        ctx.restore();
+      }
+
+      function niceTicks(min, max, count) {
+        var range = niceNum(max - min, false);
+        var step  = niceNum(range / (count - 1), true);
+        var niceMin = Math.floor(min / step) * step;
+        var niceMax = Math.ceil(max / step) * step;
+        var ticks = [];
+        for (var v = niceMin; v <= niceMax + step/2; v += step) {
+          if (v >= min - step*0.01 && v <= max + step*0.01) ticks.push(v);
+        }
+        return ticks;
+      }
+
+      function niceNum(range, round) {
+        var exp = Math.floor(Math.log10(range));
+        var frac = range / Math.pow(10, exp);
+        var nf;
+        if (round) {
+          if (frac < 1.5) nf = 1;
+          else if (frac < 3) nf = 2;
+          else if (frac < 7) nf = 5;
+          else nf = 10;
+        } else {
+          if (frac <= 1) nf = 1;
+          else if (frac <= 2) nf = 2;
+          else if (frac <= 5) nf = 5;
+          else nf = 10;
+        }
+        return nf * Math.pow(10, exp);
+      }
+
+      function tickFmt(n) {
+        if (n === 0) return '0';
+        var abs = Math.abs(n);
+        if (abs >= 10000 || abs < 0.001) return n.toExponential(1);
+        return parseFloat(n.toFixed(4)).toString();
+      }
+
+      // Olay dinleyicileri — basit click, hiçbir numara yok
+      document.getElementById('btnAdd').addEventListener('click', function() { addRow(); });
+      document.getElementById('btnClear').addEventListener('click', function() { clearAll(); });
+      document.getElementById('btnCalc').addEventListener('click', function() { calculate(); });
+
+      // Silme butonları için delegation
+      dataBody.addEventListener('click', function(e) {
+        var btn = e.target.closest && e.target.closest('.btn-del');
+        if (btn) {
+          var row = document.getElementById(btn.getAttribute('data-row'));
+          if (row) row.parentNode.removeChild(row);
+        }
+      });
+
+      // Yön değişince veya boyut değişince grafiği yeniden çiz
+      window.addEventListener('resize', function() { drawChart(); });
+      window.addEventListener('orientationchange', function() {
+        setTimeout(function(){ drawChart(); }, 200);
+      });
+
+      // Başlangıç satırları
+      for (var s = 0; s < 5; s++) addRow();
+    })();
+  </script>
+</body>
+</html>
